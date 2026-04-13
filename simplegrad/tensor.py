@@ -5,6 +5,17 @@ import simplegrad.ops as ops
 def ensure_tensor(x):
     return x if isinstance(x, Tensor) else Tensor(x)
 
+def unbroadcast(grad, target_shape):
+    if grad.shape == target_shape:
+        return grad
+    ndims_added = grad.ndim - len(target_shape)
+    for _ in range(ndims_added):
+        grad = grad.sum(axis=0)
+    for i, dim in enumerate(target_shape):
+        if dim == 1:
+            grad = grad.sum(axis=i, keepdims=True)
+    return grad
+
 def backward(output):
     def toposort(tensor):
         visited = set()
@@ -36,7 +47,7 @@ def backward(output):
             if p.grad is None:
                 p.grad = g
             else:
-                p.grad += g
+                p.grad += unbroadcast(g, p.shape)
 
 class Tensor:
     def __init__(self, data, requires_grad: bool = False):
@@ -45,7 +56,7 @@ class Tensor:
 
         self.data = data
         self.requires_grad = requires_grad
-        self.grad = np.zeros_like(data)
+        self.grad = None
         self.parents = []
         self.grad_fn = None
         self._computed = data is not None
