@@ -39,9 +39,10 @@ def backward(output):
         order = []
 
         def dfs(node):
-            if node in visited:
+            node_id = id(node)
+            if node_id in visited:
                 return
-            visited.add(node)
+            visited.add(node_id)
             for pa in node.parents:
                 dfs(pa)
             order.append(node)
