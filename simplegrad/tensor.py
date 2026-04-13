@@ -186,5 +186,40 @@ class Tensor:
             out.parents = [self, other]
         return out
 
+    def sum(self, axis=None, keepdims=False):
+        out = Tensor(np.sum(self.data, axis=axis, keepdims=keepdims),
+                     requires_grad=self.requires_grad)
+        if out.requires_grad:
+            out.grad_fn = ops.Sum(self, axis, keepdims)
+            out.parents = [self]
+        return out
+
+    def mean(self, axis=None, keepdims=False):
+        out = Tensor(np.mean(self.data, axis=axis, keepdims=keepdims),
+                     requires_grad=self.requires_grad)
+        if out.requires_grad:
+            out.grad_fn = ops.Mean(self, axis, keepdims)
+            out.parents = [self]
+        return out
+
+    def softmax(self, axis=-1):
+        fn = ops.Softmax(self, axis)
+        out = Tensor(fn.out_data, requires_grad=self.requires_grad)
+        if out.requires_grad:
+            out.grad_fn = fn
+            out.parents = [self]
+        return out
+
+    def log(self):
+        out_data = np.log(self.data + 1e-8)
+        out = Tensor(out_data, requires_grad=self.requires_grad)
+        if out.requires_grad:
+            out.grad_fn = ops.Log(self)
+            out.parents = [self]
+        return out
+
+    def __neg__(self):
+        return self * -1.0
+
     def detach(self):
         return Tensor(self.data, requires_grad=False)
