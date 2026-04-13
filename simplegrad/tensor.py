@@ -177,5 +177,14 @@ class Tensor:
 
         return out
 
+    def __matmul__(self, other):
+        other = ensure_tensor(other)
+        out = Tensor(self.data @ other.data,
+                     requires_grad=self.requires_grad or other.requires_grad)
+        if out.requires_grad and GradMode.enabled:
+            out.grad_fn = ops.MatMul(self, other)
+            out.parents = [self, other]
+        return out
+
     def detach(self):
         return Tensor(self.data, requires_grad=False)

@@ -48,3 +48,16 @@ class ReLU(Function):
         x = self.parents[0].data
 
         return grad_output * (x > 0)
+
+class MatMul:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def backward(self, grad):
+        # Y = A @ B
+        # dA = grad @ B.T
+        # dB = A.T @ grad
+        grad_a = grad @ self.b.data.T
+        grad_b = self.a.data.T @ grad
+        return [grad_a, grad_b]
