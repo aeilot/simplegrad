@@ -2,8 +2,10 @@ import numpy as np
 from contextlib import contextmanager
 import simplegrad.ops as ops
 
+
 class GradMode:
     enabled = True
+
 
 @contextmanager
 def no_grad():
@@ -18,6 +20,7 @@ def no_grad():
 def ensure_tensor(x):
     return x if isinstance(x, Tensor) else Tensor(x)
 
+
 def unbroadcast(grad, target_shape):
     if grad.shape == target_shape:
         return grad
@@ -28,6 +31,7 @@ def unbroadcast(grad, target_shape):
         if dim == 1:
             grad = grad.sum(axis=i, keepdims=True)
     return grad
+
 
 def backward(output):
     def toposort(tensor):
@@ -58,9 +62,10 @@ def backward(output):
 
         for p, g in zip(node.parents, grads):
             if p.grad is None:
-                p.grad = g
+                p.grad = unbroadcast(g, p.shape)
             else:
                 p.grad += unbroadcast(g, p.shape)
+
 
 class Tensor:
     def __init__(self, data, requires_grad: bool = False):
@@ -95,8 +100,10 @@ class Tensor:
     def __add__(self, other):
         other = ensure_tensor(other)
 
-        out = Tensor(self.data + other.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            self.data + other.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
 
         if out.requires_grad and GradMode.enabled:
             fn = ops.Add(self, other)
@@ -108,8 +115,10 @@ class Tensor:
     def __radd__(self, other):
         other = ensure_tensor(other)
 
-        out = Tensor(self.data + other.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            self.data + other.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
 
         if out.requires_grad and GradMode.enabled:
             fn = ops.Add(self, other)
@@ -121,8 +130,10 @@ class Tensor:
     def __sub__(self, other):
         other = ensure_tensor(other)
 
-        out = Tensor(self.data - other.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            self.data - other.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
 
         if out.requires_grad and GradMode.enabled:
             fn = ops.Sub(self, other)
@@ -134,8 +145,10 @@ class Tensor:
     def __rsub__(self, other):
         other = ensure_tensor(other)
 
-        out = Tensor(other.data - self.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            other.data - self.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
 
         if out.requires_grad and GradMode.enabled:
             fn = ops.Sub(other, self)
@@ -147,8 +160,10 @@ class Tensor:
     def __mul__(self, other):
         other = ensure_tensor(other)
 
-        out = Tensor(self.data * other.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            self.data * other.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
         if out.requires_grad and GradMode.enabled:
             fn = ops.Mul(self, other)
             out.grad_fn = fn
@@ -158,8 +173,10 @@ class Tensor:
     def __rmul__(self, other):
         other = ensure_tensor(other)
 
-        out = Tensor(self.data * other.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            self.data * other.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
         if out.requires_grad and GradMode.enabled:
             fn = ops.Mul(other, self)
             out.grad_fn = fn
@@ -168,8 +185,7 @@ class Tensor:
         return out
 
     def relu(self):
-        out = Tensor(np.maximum(0, self.data),
-                     requires_grad=self.requires_grad)
+        out = Tensor(np.maximum(0, self.data), requires_grad=self.requires_grad)
         if out.requires_grad and GradMode.enabled:
             fn = ops.ReLU(self)
             out.grad_fn = fn
@@ -179,25 +195,31 @@ class Tensor:
 
     def __matmul__(self, other):
         other = ensure_tensor(other)
-        out = Tensor(self.data @ other.data,
-                     requires_grad=self.requires_grad or other.requires_grad)
+        out = Tensor(
+            self.data @ other.data,
+            requires_grad=self.requires_grad or other.requires_grad,
+        )
         if out.requires_grad and GradMode.enabled:
             out.grad_fn = ops.MatMul(self, other)
             out.parents = [self, other]
         return out
 
     def sum(self, axis=None, keepdims=False):
-        out = Tensor(np.sum(self.data, axis=axis, keepdims=keepdims),
-                     requires_grad=self.requires_grad)
-        if out.requires_grad:
+        out = Tensor(
+            np.sum(self.data, axis=axis, keepdims=keepdims),
+            requires_grad=self.requires_grad,
+        )
+        if out.requires_grad and GradMode.enabled:
             out.grad_fn = ops.Sum(self, axis, keepdims)
             out.parents = [self]
         return out
 
     def mean(self, axis=None, keepdims=False):
-        out = Tensor(np.mean(self.data, axis=axis, keepdims=keepdims),
-                     requires_grad=self.requires_grad)
-        if out.requires_grad:
+        out = Tensor(
+            np.mean(self.data, axis=axis, keepdims=keepdims),
+            requires_grad=self.requires_grad,
+        )
+        if out.requires_grad and GradMode.enabled:
             out.grad_fn = ops.Mean(self, axis, keepdims)
             out.parents = [self]
         return out
@@ -205,7 +227,7 @@ class Tensor:
     def softmax(self, axis=-1):
         fn = ops.Softmax(self, axis)
         out = Tensor(fn.out_data, requires_grad=self.requires_grad)
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             out.grad_fn = fn
             out.parents = [self]
         return out
@@ -213,7 +235,7 @@ class Tensor:
     def log(self):
         out_data = np.log(self.data + 1e-8)
         out = Tensor(out_data, requires_grad=self.requires_grad)
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             out.grad_fn = ops.Log(self)
             out.parents = [self]
         return out

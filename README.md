@@ -14,6 +14,10 @@ It provides a minimal `Tensor` type with gradient tracking, a reverse-mode `back
   - subtraction
   - multiplication
   - ReLU
+- Matrix multiplication with `@`
+- Reductions with `sum()` and `mean()`
+- `softmax()` and `log()` for simple loss construction
+- Small neural-network helpers in `simplegrad.nn`
 
 ## Requirements
 
@@ -38,9 +42,9 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Example
+## Examples
 
-The repository includes `example.py`:
+The repository includes a basic tensor/autodiff demo in `example.py`:
 
 ```python
 from simplegrad.tensor import Tensor, backward
@@ -61,8 +65,26 @@ print(y.grad)
 Run it with:
 
 ```bash
-python example.py
+uv run python example.py
 ```
+
+It also includes `example-nn.py`, which trains a small two-layer neural network to learn XOR using `Linear`, `ReLU`, `SoftmaxLoss`, and `Adam`:
+
+```bash
+uv run python example-nn.py
+```
+
+The script prints the final loss, class predictions, accuracy, and output probabilities for the four XOR inputs.
+
+## Testing
+
+Run the test suite with:
+
+```bash
+uv run pytest
+```
+
+If you are using an activated virtual environment instead of `uv`, `python -m pytest` also works.
 
 ## API Sketch
 
@@ -70,6 +92,7 @@ Main entry points:
 
 - `simplegrad.tensor.Tensor`
 - `simplegrad.tensor.backward`
+- `simplegrad.tensor.no_grad`
 
 Useful tensor methods and operators:
 
@@ -77,17 +100,25 @@ Useful tensor methods and operators:
 - `a + b`
 - `a - b`
 - `a * b`
+- `a @ b`
 - `a.relu()`
+- `tensor.sum(...)`
+- `tensor.mean(...)`
+- `tensor.softmax(axis=-1)`
+- `tensor.log()`
 - `tensor.zero_grad()`
 - `tensor.detach()`
-- `with tensor.no_grad(): ...`
+- `with no_grad(): ...`
 
 ## Project Layout
 
 - `simplegrad/tensor.py`: `Tensor` implementation and backpropagation
 - `simplegrad/ops.py`: operation-specific backward rules
 - `simplegrad/function.py`: base `Function` abstraction
+- `simplegrad/nn/`: minimal modules, losses, and optimizers
+- `tests/`: pytest coverage for tensor, module, loss, and optimizer behavior
 - `example.py`: small runnable demo
+- `example-nn.py`: XOR training example using `simplegrad.nn`
 
 ## Status
 

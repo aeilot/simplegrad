@@ -1,6 +1,7 @@
 from simplegrad.function import Function
 import numpy as np
 
+
 class Add(Function):
     def __init__(self, a, b):
         super().__init__()
@@ -12,6 +13,7 @@ class Add(Function):
     def backward(self, grad_output):
         return grad_output, grad_output
 
+
 class Sub(Function):
     def __init__(self, a, b):
         super().__init__()
@@ -22,6 +24,7 @@ class Sub(Function):
 
     def backward(self, grad_output):
         return grad_output, -grad_output
+
 
 class Mul(Function):
     def __init__(self, a, b):
@@ -47,7 +50,8 @@ class ReLU(Function):
     def backward(self, grad_output):
         x = self.parents[0].data
 
-        return grad_output * (x > 0)
+        return [grad_output * (x > 0)]
+
 
 class MatMul(Function):
     def __init__(self, a, b):
@@ -63,6 +67,7 @@ class MatMul(Function):
         grad_b = self.a.data.T @ grad
         return [grad_a, grad_b]
 
+
 def _get_keepdims_shape(original_shape, axis):
     if axis is None:
         return (1,) * len(original_shape)
@@ -71,6 +76,7 @@ def _get_keepdims_shape(original_shape, axis):
     for a in axes:
         shape[a] = 1
     return tuple(shape)
+
 
 class Sum(Function):
     def __init__(self, t, axis, keepdims):
@@ -120,6 +126,7 @@ class Softmax(Function):
         sum_grad_s = np.sum(grad * S, axis=self.axis, keepdims=True)
         grad_t = S * (grad - sum_grad_s)
         return [grad_t]
+
 
 class Log(Function):
     def __init__(self, t):
