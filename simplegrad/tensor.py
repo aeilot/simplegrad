@@ -2,6 +2,19 @@ import numpy as np
 from contextlib import contextmanager
 import simplegrad.ops as ops
 
+class GradMode:
+    enabled = True
+
+@contextmanager
+def no_grad():
+    prev = GradMode.enabled
+    GradMode.enabled = False
+    try:
+        yield
+    finally:
+        GradMode.enabled = prev
+
+
 def ensure_tensor(x):
     return x if isinstance(x, Tensor) else Tensor(x)
 
@@ -76,15 +89,6 @@ class Tensor:
     def shape(self, shape):
         self.data = self.data.reshape(shape)
 
-    @contextmanager
-    def no_grad(self):
-        if self.requires_grad:
-            self.requires_grad = False
-            yield
-            self.requires_grad = True
-        else:
-            yield
-
     def zero_grad(self):
         self.grad = np.zeros_like(self.data)
 
@@ -94,7 +98,7 @@ class Tensor:
         out = Tensor(self.data + other.data,
                      requires_grad=self.requires_grad or other.requires_grad)
 
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.Add(self, other)
             out.grad_fn = fn
             out.parents = [self, other]
@@ -107,7 +111,7 @@ class Tensor:
         out = Tensor(self.data + other.data,
                      requires_grad=self.requires_grad or other.requires_grad)
 
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.Add(self, other)
             out.grad_fn = fn
             out.parents = [self, other]
@@ -120,7 +124,7 @@ class Tensor:
         out = Tensor(self.data - other.data,
                      requires_grad=self.requires_grad or other.requires_grad)
 
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.Sub(self, other)
             out.grad_fn = fn
             out.parents = [self, other]
@@ -133,7 +137,7 @@ class Tensor:
         out = Tensor(other.data - self.data,
                      requires_grad=self.requires_grad or other.requires_grad)
 
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.Sub(other, self)
             out.grad_fn = fn
             out.parents = [other, self]
@@ -145,7 +149,7 @@ class Tensor:
 
         out = Tensor(self.data * other.data,
                      requires_grad=self.requires_grad or other.requires_grad)
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.Mul(self, other)
             out.grad_fn = fn
             out.parents = [self, other]
@@ -156,7 +160,7 @@ class Tensor:
 
         out = Tensor(self.data * other.data,
                      requires_grad=self.requires_grad or other.requires_grad)
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.Mul(other, self)
             out.grad_fn = fn
             out.parents = [other, self]
@@ -166,7 +170,7 @@ class Tensor:
     def relu(self):
         out = Tensor(np.maximum(0, self.data),
                      requires_grad=self.requires_grad)
-        if out.requires_grad:
+        if out.requires_grad and GradMode.enabled:
             fn = ops.ReLU(self)
             out.grad_fn = fn
             out.parents = [self]
